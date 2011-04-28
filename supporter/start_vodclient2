@@ -1,0 +1,12 @@
+#!/bin/bash
+
+export PYTHONPATH="$PYTHONPATH":BaseLib:SisClient:.
+
+TEST_DIR="./tests/tracker_ext_test"
+PEER_DIR="."
+FILE=kgan97.mpg
+PORT=8859
+TORRENT=$FILE".tstream"
+
+cp $TEST_DIR/files/$TORRENT $TEST_DIR/vodclient2
+python SisClient/Tools/vodclient.py --directory=$TEST_DIR/vodclient2 --torrent=$TEST_DIR/vodclient2/$TORRENT -y 20000 -p 6838

@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# simple script that runs a vod client on the locality video file. the underneath
+# BITRATE constant is set to the bitrate of that video. the test runs the client
+# multiple times, while every run has a different download rate (with respect to
+# the BITRATE).
+
+BITRATE=`echo $[124160/1024]`
+
+export PYTHONPATH="$PYTHONPATH":BaseLib:SisClient:.
+
+function remove_directory_if_existing
+{
+    # expected parameter: $1 = the directory to check
+    if [ -d $1 ]
+    then
+        sudo rm -rf $1
+    fi
+}
+
+function cleanup
+{
+    remove_directory_if_existing vod_files
+    remove_directory_if_existing vod_tracker
+    remove_directory_if_existing vod_seeder
+}
+
+function prepare_test
+{
+    mkdir vod_files
+    mkdir vod_tracker
+    mkdir vod_seeder
+    cp resources/Locality-Demo.mp4 vod_files/
+    cp resources/Locality-Demo.mp4 vod_seeder/
+}
+
+function start_vodclient
+{
+    # parameters: $1 = directory, $2 = port, $3 = download rate, $4 = logfile
+    mkdir $1
+    cp vod_tracker/Locality-Demo.mp4.tstream $1/Locality-Demo.mp4.tstream
+    python SisClient/Tools/vodclient.py --torrent=$1/Locality-Demo.mp4.tstream --directory=$1 --port=$2 -x $3 -l $4
+    rm -rf $1
+}
+
+function start_tracker
+{
+    cp Locality-Demo.mp4.tribe vod_tracker
+    sh tracker.sh -u http://localhost:8859/announce -d vod_tracker --files_directory=vod_files &
+}
+
+function start_seeder
+{
+    # parameters: $1 = upload rate
+    cp vod_tracker/Locality-Demo.mp4.tstream vod_seeder/
+    sh client.sh -p 50000 -d vod_seeder -x $1 --single_torrent=vod_seeder/Locality-Demo.mp4.tstream &
+}
+
+function add_playtime
+{
+    python SisClient/Tools/add_playtime.py vod_tracker/Locality-Demo.mp4.tribe vod_files/Locality-Demo.mp4
+}
+
+#_______________________________________________________________________________
+# MAIN
+
+cleanup
+prepare_test
+start_tracker
+TRACKER_PID=`echo $[$!+0]`
+sleep 10
+add_playtime
+start_seeder `echo $[$BITRATE*4]`
+SEEDER_PID=`echo $[$!+0]`
+sleep 5
+#start_vodclient vod_client0 3999 `echo $[$BITRATE/4]` vodclient_rate_1_4.log
+#start_vodclient vod_client1 4000 `echo $[$BITRATE/2]` vodclient_rate_1_2.log
+#start_vodclient vod_client2 4001 `echo $[$BITRATE/4*3]` vodclient_rate_3_4.log
+#start_vodclient vod_client3 4002 `echo $[$BITRATE*3]` vodclient_rate_3_1.log
+#start_vodclient vod_client4 4003 `echo $[$BITRATE*4]` vodclient_rate_4_1.log
+start_vodclient vod_client3 4002 $BITRATE vodclient_rate_1_1.log
+#start_vodclient vod_client4 4003 `echo $[$BITRATE/4*5]` vodclient_rate_5_4.log
+#start_vodclient vod_client5 4004 `echo $[$BITRATE/2*3]` vodclient_rate_3_2.log
+#start_vodclient vod_client6 4005 `echo $[$BITRATE/4*7]` vodclient_rate_7_4.log
+#start_vodclient vod_client7 4006 `echo $[$BITRATE*2]` vodclient_rate_2_1.log
+kill -9 $TRACKER_PID $SEEDER_PID
+cleanup

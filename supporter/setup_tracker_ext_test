@@ -1,0 +1,39 @@
+#!/bin/bash
+# To be run from the peer directory.
+
+function cleanup_directory_if_existing
+{
+    # expected parameter: $1 = the directory to check
+    if [ -d $1 ]
+    then
+        rm -rfv $1
+    fi
+
+}
+
+TEST_DIR="./tests/tracker_ext_test"
+PEER_DIR="."
+FILE=Locality-Demo.mp4
+FILE2=kgan97.mpg
+PORT=8859
+TORRENT=$FILE".tstream"
+TORRENT2=$FILE2".tstream"
+
+
+cleanup_directory_if_existing $TEST_DIR
+mkdir -p $TEST_DIR
+mkdir "$TEST_DIR"/files
+mkdir "$TEST_DIR"/tracker
+mkdir "$TEST_DIR"/supporter
+mkdir "$TEST_DIR"/vodclient
+mkdir "$TEST_DIR"/vodclient2
+mkdir "$TEST_DIR"/player
+mkdir "$TEST_DIR"/seed
+
+cp "$PEER_DIR"/resources/$FILE "$TEST_DIR"/files
+cp "$PEER_DIR"/resources/$FILE2 "$TEST_DIR"/files
+export PYTHONPATH="$PYTHONPATH":BaseLib:SisClient:.
+python SisClient/Tools/create_torrent.py "$TEST_DIR"/files/$FILE $PORT vod
+python SisClient/Tools/create_torrent.py "$TEST_DIR"/files/$FILE2 $PORT vod
+mv -v $TORRENT $TEST_DIR/files/
+mv -v $TORRENT2 $TEST_DIR/files/

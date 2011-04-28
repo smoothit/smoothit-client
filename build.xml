@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="SmoothIT P2P Client" default="packaging">
+
+	<property file="build.properties" />
+	<property name="python.path" value="${env.PYTHONPATH}:${src.dir}" />
+	<property name="python.args" value="-W ignore::DeprecationWarning" description="Ignore disturbing warnings in the core tribler code when running with python versions >=2.6."/>
+	<property name="default.torrent" value="${base.dir}/torrents/Alice_in_Wonderland_2010_HD_Trailer_mp4.torrent" />
+
+	<target name="init">
+		<echo message="*************************************************************" />
+		<echo message="***  Automated script for building SmoothIT Peer project   ***" />
+		<echo message="*************************************************************" />
+		<echo message="os.name:           ${os.name}" />
+		<echo message="ant.file:          ${ant.file}" />
+		<echo message="ant.project.name:  ${ant.project.name}" />
+		<echo message="ant.version:       ${ant.version}" />
+		<echo message="ant.java.version:  ${ant.java.version}" />
+		<echo message="java.home:         ${java.home}" />
+		<echo message="java.vendor:       ${java.vendor}" />
+		<echo message="base.dir:          ${base.dir}" />
+		<echo message="dist.dir:          ${dist.dir}" />
+		<echo message="temp.dir:          ${temp.dir}" />
+		<echo message="test.dir:          ${test.dir}" />
+		<echo message="default.torrent:   ${default.torrent}" />
+	</target>
+
+	<target name="clean" depends="init">
+		<echo message="Cleaning directories..." />
+		<delete verbose="false" quiet="true" includeemptydirs="true">
+			<fileset dir="${base.dir}" includes="*.log" />
+			<fileset dir="${base.dir}" includes="*.out" />
+			<fileset dir="${base.dir}" includes="**/*.pyc" />
+			<fileset dir="${base.dir}" includes="*~" defaultexcludes="no" />
+			<fileset dir="${dist.dir}" includes="**/*" />
+			<fileset dir="${test.dir}" includes="**/*" />
+			<fileset dir="${temp.dir}" includes="**/*" />
+		</delete>
+	</target>
+
+	<target name="packaging" depends="clean">
+		<tstamp>
+			<format property="TODAY" pattern="yyyyMMdd-HHmmssZ" />
+		</tstamp>
+
+		<echo message="Package client code to ${dist.dir}." />
+		<mkdir dir="${dist.dir}/linux" />
+		<copy todir="${dist.dir}/linux">
+			<!-- TODO: include build.* ?-->
+			<fileset dir="${base.dir}" casesensitive="yes" includes="BaseLib/** SisClient/** config/** *.sh LICENSE.txt *.conf *.cfg build.*">
+				<exclude name="**/*.pyc" />
+			</fileset>
+		</copy>
+
+		<echo message="Create a zip file for further distribution" />
+		<zip destfile="${dist.dir}/peer-${TODAY}.zip" basedir="${dist.dir}" includes="linux/**" />
+	</target>
+
+	<target name="generate-wsdl-stubs" depends="clean">
+		<echo message="Generate WSDL stubs for the SIS API." />
+
+		<exec executable="wsdl2py">
+			<arg line="-o SisClient/PeerSelection/WebService ${sis.url}/ClientEndpoint?wsdl" />
+		</exec>
+	</target>
+
+	<target name="run-unit-tests" depends="clean">
+		<echo message="Run unit tests for the client. Most of them require a running SIS at ..." />
+
+		<condition property="peer.sis_found" value="sis" else="nosis">
+			<http url="${sis.url}" />
+		</condition>
+
+		<!--  Add: failonerror="true" if you want the build to fail on unit test failures.
+		Currently, they will ALWAYS fail because no SIS instance is running!
+		<echo message="SOME TESTS WILL FAIL IF SIS IS NOT RUNNING!" />
+		-->
+
+		<echo message="Check whether SIS is running at ${sis.url}: ${peer.sis_found}" />
+		<exec executable="python" failonerror="true">
+			<env key="PYTHONPATH" path="${python.path}" />
+			<arg line="${python.args} ${src.dir}/SisClient/Test/testsuite.py ${peer.sis_found}" />
+		</exec>
+
+	</target>
+
+	<target name="all-client-tests" depends="run-unit-tests, swarm-test" description="IGNORE now: run-player-test">
+		<echo message="Run all available tests for the client" />
+	</target>
+	
+	<target name="IoP-Test-A" depends="clean" description="Test that IoP can download file from one local seed (SIS-enabled mode).">
+		<!--
+		This test starts a tracker, and 5 seconds later a client and a cache process. The client
+		should serve the contents of file file.wmv to the cache. The expected outcome is, that
+		the cache should have downloaded file.wmv completely.
+		Total length: 1 minute.
+		-->
+	    <property name="files.dir" location="${base.dir}/files" />
+		<property name="iop.test.dir" location="${test.dir}/iop" />
+		<property name="iop.cache.dir" location="${iop.test.dir}/iop-cache" />
+		<property name="iop.tracker.dir" location="${iop.test.dir}/iop-tracker" />
+		<property name="iop.seeder.dir" location="${iop.test.dir}/iop-seeder" />
+		<property name="iop.torrent.file" location="${iop.tracker.dir}/file.wmv.tstream" />
+		<property name="iop.speed" value="128" />
+		<property name="iop.sis_url" value="http://localhost:8080/sis" />
+		<property name="iop.sis_monitor" value="http://localhost:8080/sis/monitor" />
+		
+		<delete dir="${iop.test.dir}" />
+		<mkdir dir="${iop.test.dir}" />
+		<!-- Expect files to be in the ./files directory -->
+		
+		<echo message="This test needs a running SIS, otherwise it fails to execute properly!" />
+		
+		<parallel timeout="60000">
+	           <exec executable="python" timeout="55000">
+	                <env key="PYTHONPATH" path="${python.path}" />
+	                <arg line="${src.dir}/SisClient/Tracker/Tracker.py --files_directory=${files.dir} --directory=${iop.tracker.dir}" />
+	            </exec>
+			
+		    <sequential>
+	                <sleep seconds="5" />
+	                <echo message="Starting seeder..." />
+	                <mkdir dir="${iop.seeder.dir}" />
+	                <copy todir="${iop.seeder.dir}">
+	                    <fileset file="${files.dir}/file.wmv" />
+	                    <fileset file="${iop.tracker.dir}/file.wmv.tstream" />
+	                </copy>
+	                <exec executable="python" timeout="30000">
+	                    <env key="PYTHONPATH" path="${python.path}" />
+	                    <arg line="${src.dir}/SisClient/Client/Client.py --upload=${iop.speed} --directory=${iop.seeder.dir} --activity_report_interval=3 --report_to=${iop.sis_monitor}" />
+	                </exec>
+	                <echo message="Seeder process terminated..." />
+	        </sequential>
+			
+			<sequential>
+			    <sleep seconds="5" />
+			    <echo message="Starting IoP..." />
+			    <mkdir dir="${iop.cache.dir}" />
+				<copy todir="${iop.cache.dir}">
+			        <fileset file="${iop.tracker.dir}/file.wmv.tstream" />
+			    </copy>
+			    <exec executable="python" timeout="30000">
+			        <env key="PYTHONPATH" path="${python.path}" />
+				    <arg line="${src.dir}/SisClient/Cache/Cache.py --directory=${iop.cache.dir} --torrentdir=${iop.cache.dir} --sis_url=${iop.sis_url} --ranking_source=sis" />
+				</exec>
+				<echo message="IoP process terminated..." />
+			</sequential>
+
+		</parallel>
+		
+	    <fail message="FAILED: Cache was unable to download file file.wmv!">
+	          <condition>
+	                  <not>
+	                  	<filesmatch file1="${files.dir}/file.wmv" file2="${iop.cache.dir}/file.wmv" />
+	                  </not>
+	          </condition>
+	    </fail>
+	</target>
+	
+	<target name="IoP-Test-B" depends="clean" description="Test IoP in SIS-enabled mode with one seeder and one leecher.">
+	        <!--
+	        This test starts a tracker, and 5 seconds later a seeder and a cache process. The
+	        seeder serves the contents of file file.wmv to the cache. Its lifetime is limited,
+	        so the seeder process will terminate before the cache. After the seeder process
+	        was terminated, a new client process joins the local swarm and attempts to download
+	        file.wmv from the cache. The expected outcome is, that the leecher should have
+	        downloaded file.wmv completely.
+	        Total length: 1 minute
+	        -->
+	        <property name="files.dir" location="${base.dir}/files" />
+	        <property name="iop.test.dir" location="${test.dir}/iop" />
+	        <property name="iop.cache.dir" location="${iop.test.dir}/iop-cache" />
+		    <property name="iop.leecher.dir" location="${iop.test.dir}/iop-leecher" />
+	        <property name="iop.tracker.dir" location="${iop.test.dir}/iop-tracker" />
+	        <property name="iop.seeder.dir" location="${iop.test.dir}/iop-seeder" />
+	        <property name="iop.torrent.file" location="${iop.tracker.dir}/file.wmv.tstream" />
+	        <property name="iop.speed" value="128" />
+	        <property name="iop.sis_url" value="http://localhost:8080/sis" />
+	        <property name="iop.sis_monitor" value="http://localhost:8080/sis/monitor" />
+
+	        <delete dir="${iop.test.dir}" />
+	        <mkdir dir="${iop.test.dir}" />
+	        <!-- Expect files to be in the ./files directory -->
+	        
+	        <echo message="This test needs a running SIS, otherwise it fails to execute properly!" />
+	        
+	        <parallel timeout="60000">
+	               <exec executable="python" timeout="52000">
+	                    <env key="PYTHONPATH" path="${python.path}" />
+	                    <arg line="${src.dir}/SisClient/Tracker/Tracker.py --files_directory=${files.dir} --directory=${iop.tracker.dir}" />
+	                </exec>
+	            
+	            <sequential>
+	                    <sleep seconds="5" />
+	                    <echo message="Start seeder..." />
+	                    <mkdir dir="${iop.seeder.dir}" />
+	                    <copy todir="${iop.seeder.dir}">
+	                        <fileset file="${files.dir}/file.wmv" />
+	                        <fileset file="${iop.tracker.dir}/file.wmv.tstream" />
+	                    </copy>
+	                    <exec executable="python" timeout="20000">
+	                        <env key="PYTHONPATH" path="${python.path}" />
+	                        <arg line="${src.dir}/SisClient/Client/Client.py --upload=${iop.speed} --directory=${iop.seeder.dir} --activity_report_interval=3 --report_to=${iop.sis_monitor}" />
+	                    </exec>
+	                    <echo message="Seeder process terminated..." />
+	            </sequential>
+	            
+	            <sequential>
+	                <sleep seconds="5" />
+	                <echo message="Starting IoP..." />
+	                <mkdir dir="${iop.cache.dir}" />
+	                <copy todir="${iop.cache.dir}">
+	                    <fileset file="${iop.tracker.dir}/file.wmv.tstream" />
+	                </copy>
+	                <exec executable="python" timeout="52000">
+	                    <env key="PYTHONPATH" path="${python.path}" />
+	                    <arg line="${src.dir}/SisClient/Cache/Cache.py --directory=${iop.cache.dir} --torrentdir=${iop.cache.dir} --sis_url=${iop.sis_url} --ranking_source=sis" />
+	                </exec>
+	                <echo message="IoP process terminated..." />
+	            </sequential>
+	        	
+	        	<sequential>
+	        		<sleep seconds="20" />
+	        		<echo message="Starting leecher..." />
+	        		<mkdir dir="${iop.leecher.dir}" />
+	        		<copy todir="${iop.leecher.dir}">
+	        		    <fileset file="${iop.tracker.dir}/file.wmv.tstream" />
+	        		</copy>
+	        		<exec executable="python" timeout="15000">
+	        		    <env key="PYTHONPATH" path="${python.path}" />
+	        			<arg line="${src.dir}/SisClient/Client/Client.py --download=${iop.speed} --directory=${iop.leecher.dir} --activity_report_interval=3 --report_to=${iop.sis_monitor}" />
+	        		</exec>
+	        		<echo message="Leecher process terminated..." />
+	        	</sequential>
+
+	        </parallel>
+	        
+	        <fail message="FAILED: Cache was unable to download file file.wmv!">
+	              <condition>
+	                      <not>
+	                        <filesmatch file1="${files.dir}/file.wmv" file2="${iop.leecher.dir}/file.wmv" />
+	                      </not>
+	              </condition>
+	        </fail>
+	    </target>
+
+	<target name="swarm-test" depends="clean">
+		<property name="files.dir" location="${base.dir}/files" />
+		<property name="simple.test.dir" location="${test.dir}/simple" />
+		<echo message="Test dir is ${simple.test.dir}" />
+		<property name="simple.tracker.dir" location="${simple.test.dir}/tracker" />
+		<property name="simple.seed.dir" location="${simple.test.dir}/seed" />
+		<property name="simple.leecher.dir" location="${simple.test.dir}/leecher" />
+		<property name="simple.torrent.file" location="${simple.tracker.dir}/file.wmv.torrent" />
+		<property name="simple.speed" value="10" />
+
+		<delete dir="${simple.test.dir}" />
+		<mkdir dir="${simple.test.dir}" />
+		<!-- Expect files to be in the ./files directory.-->
+
+		<parallel timeout="60000">
+			<exec executable="python" timeout="55000">
+				<env key="PYTHONPATH" path="${python.path}" />
+				<arg line="${src.dir}/SisClient/Tracker/Tracker.py --files_directory=${files.dir} --directory=${simple.tracker.dir}" />
+			</exec>
+
+			<sequential>
+				<sleep seconds="5" />
+				<echo message="Start seed" />
+				<mkdir dir="${simple.seed.dir}" />
+				<copy todir="${simple.seed.dir}">
+					<fileset file="${files.dir}/file.wmv" />
+					<fileset file="${simple.tracker.dir}/file.wmv.torrent" />
+				</copy>
+				<exec executable="python" timeout="30000">
+					<env key="PYTHONPATH" path="${python.path}" />
+					<arg line="${src.dir}/SisClient/Client/Client.py --upload=${simple.speed} --directory=${simple.seed.dir}" />
+				</exec>
+				<echo message="Finished seed" />
+			</sequential>
+
+			<sequential>
+				<sleep seconds="10" />
+				<echo message="Start leecher" />
+				<mkdir dir="${simple.leecher.dir}" />
+				<copy todir="${simple.leecher.dir}">
+					<fileset file="${simple.tracker.dir}/file.wmv.torrent" />
+				</copy>
+				<exec executable="python" timeout="25000">
+					<env key="PYTHONPATH" path="${python.path}" />
+					<arg line="${src.dir}/SisClient/Client/Client.py --download=${simple.speed} --directory=${simple.leecher.dir} --logfile=${simple.test.dir}/leecher.log" />
+				</exec>
+				<echo message="Finished leecher (became a seed?)" />
+			</sequential>
+		</parallel>
+
+		<fail message="Leecher was not able to download the file ${simple.leecher.dir}/file.wmv completely!">
+			<condition>
+				<not>
+					<filesmatch file1="${files.dir}/file.wmv" file2="${simple.leecher.dir}/file.wmv" />
+				</not>
+			</condition>
+		</fail>
+		<echo message="Leecher successfully downloaded the file: ${simple.leecher.dir}/file.wmv" />
+	</target>
+
+	<target name="kill-python-processes">
+		<exec executable="${base.dir}/SisClient/Tools/kill_python_processes.sh">
+		</exec>
+	</target>
+	
+	<target name="swarmplayer-video-test" depends="clean" description="Swarmplayer with a local swarm (TO BE FIXED).">
+		<property name="files.dir" location="${base.dir}/files" />
+		<property name="tracker.dir" location="${test.dir}/tracker" />
+		<property name="seeder.dir" location="${test.dir}/seeder" />
+		<property name="leecher.dir" location="${test.dir}/leecher" />
+		<property name="filename.file" value="Locality-Demo.mp4" />
+		<property name="download.file" location="${files.dir}/${filename.file}" />
+		<property name="torrent.file" location="${tracker.dir}/${filename.file}.tstream" />
+		<property name="client.up" value="1024" />
+		<property name="client.down" value="1024" />
+		
+		<delete dir="${test.dir}" />
+		<mkdir dir="${test.dir}" />
+		<mkdir dir="${tracker.dir}" />
+		
+		<parallel timeout="90000">
+			<exec executable="python" timeout="60000">
+				<env key="PYTHONPATH" path="${python.path}" />
+				<arg line="${src.dir}/SisClient/Tracker/Tracker.py -f ${files.dir} -d ${tracker.dir} -v" />
+			</exec>
+				
+			<sequential>
+				<sleep seconds="5" />
+				<echo message="Starting seeder.." />
+				<mkdir dir="${seeder.dir}" />
+				<copy todir="${seeder.dir}">
+					<fileset file="${torrent.file}" />
+					<fileset file="${download.file}" />
+				</copy>
+				<exec executable="python" timeout="60000">
+					<env key="PYTHONPATH" path="${python.path}" />
+					<arg line="${src.dir}/SisClient/Client/Client.py --download=${client.down} --upload=${client.up} --directory=${seeder.dir}" />
+				</exec>
+				<echo message="Shutting down seeder..." />
+			</sequential>
+			
+			<sequential>
+				<sleep seconds="5" />
+				<echo message="Starting swarmplayer..." />
+				<mkdir dir="${leecher.dir}" />
+				<exec executable="python" timeout="60000">
+					<env key="PYTHONPATH" path="${python.path}" />
+					<arg line="${src.dir}/SisClient/Tools/swarmplayer-sis.py -d ${leecher.dir} -s ${test.dir}/player-stats ${torrent.file}" />
+				</exec>
+				<echo message="Shutting down swarmplayer..." />
+			</sequential>
+		</parallel>
+		
+		<fail message="swarmplayer-sis was not able to download file ${download.file} completely! (compared with ${leecher.dir}/${filename.file}).">
+			<condition>
+				<not>
+					<filesmatch file1="${download.file}" file2="${leecher.dir}/${filename.file}" />
+				</not>
+			</condition>
+		</fail>
+		<echo message="swarmplayer-sis successfully downloaded file ${download.file}!" />
+	</target>
+</project>

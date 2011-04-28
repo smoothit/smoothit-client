@@ -1,0 +1,13 @@
+#!/bin/bash
+#Actually not part of supporter tests! But usefull for others!
+export PYTHONPATH="$PYTHONPATH":BaseLib:SisClient:.
+
+TEST_DIR="./tests/tracker_ext_test"
+PEER_DIR="."
+FILE=Locality-Demo.mp4
+PORT=8859
+TORRENT=$FILE".tstream"
+MY_DIR=$TEST_DIR/seed
+
+cp $TEST_DIR/files/$FILE $MY_DIR 
+python SisClient/Client/Client.py --directory=$MY_DIR -s $TEST_DIR/files/$TORRENT -y 2000 -x 1000 -i 123 -e seeding -S 

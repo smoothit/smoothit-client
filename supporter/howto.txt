@@ -1,0 +1,12 @@
+According to: 
+https://dev.kom.e-technik.tu-darmstadt.de/redmine/wiki/smoothit-integration/Description_of_the_supporter_functionality_along_with_a_minimal_example_setup
+
+All scripts should be run from: peer/.
+
+Run:
+1. setup_tracker_ext_test
+2. start_tracker_ext
+3. start_vodclient
+4. start_supporter
+
+Note: 3 and 4 are interchangeable. 2, 3 and 4 should be executed in different terminals.

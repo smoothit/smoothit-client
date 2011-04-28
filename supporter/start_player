@@ -1,0 +1,12 @@
+#!/bin/bash
+
+export PYTHONPATH="$PYTHONPATH":BaseLib:SisClient:.
+
+TEST_DIR="./tests/tracker_ext_test"
+PEER_DIR="."
+FILE=Locality-Demo.mp4
+TORRENT=$FILE".tstream"
+
+rm -r $TEST_DIR/player/*
+rm -r /home/pussep/Application\ Data/.SwarmPlayer/player_state/
+python SisClient/Tools/swarmplayer-sis.py --directory=$TEST_DIR/player $TEST_DIR/files/$TORRENT -c config/production/default.cfg

@@ -1,0 +1,43 @@
+<map name="parent">
+	<key name="status">3</key>
+	<key name="down_rate">0.0</key>
+	<key name="peers">
+		<list name="peers">
+			<item>
+				<map name="0">
+					<key name="down_rate">0.0</key>
+					<key name="up_total">0.0</key>
+					<key name="down_str">CI</key>
+					<key name="addr">88.192.42.88:55788:L</key>
+					<key name="g2g">bt</key>
+					<key name="down_total">0.0</key>
+					<key name="up_rate">0.0</key>
+					<key name="g2g_score">0.0,0.0</key>
+					<key name="up_str">ciO</key>
+					<key name="id">2D5554313832302D7A387857FB8CC1DCF440BA71</key>
+				</map>
+</item>
+		</list>
+	</key>
+	<key name="up_rate">0.0</key>
+	<key name="p_dropped">0</key>
+	<key name="listenport">17534</key>
+	<key name="t_stall">0</key>
+	<key name="timestamp">1247494852.48</key>
+	<key name="p_late">0</key>
+	<key name="up_total">0.0</key>
+	<key name="filename">Big_Buck_Bunny_1080p_surround_frostclick.com_frostwire.com</key>
+	<key name="live">False</key>
+	<key name="infohash">'\xf8KQ\xf0\xd2\xc3EZ\xb5\xda\xbbfC\xb44\x024\xcd\x03n'</key>
+	<key name="peerid">'R452-----OphdjzOfDnh'</key>
+	<key name="p_played">0</key>
+	<key name="t_prebuf">-1</key>
+	<key name="down_total">0.0</key>
+	<key name="pieces">
+		<map name="pieces">
+		</map>
+	</key>
+	<key name="progress">0.0</key>
+	<key name="id">1234567</key>
+	<key name="validrange">(0, 3543)</key>
+</map>

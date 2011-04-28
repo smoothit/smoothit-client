@@ -1,0 +1,20 @@
+#!/bin/bash
+
+export PYTHONPATH="$PYTHONPATH":BaseLib:SisClient:.
+
+TEST_DIR="./tests/tracker_ext_test"
+PEER_DIR="."
+FILE=Locality-Demo.mp4
+FILE2=kgan97.mpg
+PORT=8859
+TORRENT=$FILE".tstream"
+TORRENT2=$FILE2".tstream"
+# in kbytes
+UPLOAD=500
+
+cp $TEST_DIR/files/$FILE $TEST_DIR/supporter/
+cp $TEST_DIR/files/$FILE2 $TEST_DIR/supporter/
+cp $TEST_DIR/files/$TORRENT $TEST_DIR/supporter/
+cp $TEST_DIR/files/$TORRENT2 $TEST_DIR/supporter/
+
+python SisClient/TrackerExt/Supporter.py --directory=$TEST_DIR/supporter --torrent=$TEST_DIR/supporter/ -y $UPLOAD

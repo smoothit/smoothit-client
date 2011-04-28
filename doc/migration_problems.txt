@@ -1,0 +1,50 @@
+Summary of problems that we have encountered during the migration
+
+1. Clients do not seem to shutdown properly. We have a download tracker mechanism that stops clients that are supposed to be only leechers after all downloads have finished. This mechanism triggers the shutdown of the client, which then performs a stop() on all still active downloads and shuts the session down by calling Session.shutdown(checkpoint=False). This call blocks, because it requires all previously started daemon processes to finish first. os._shutdown does not work either (without shutting the session down beforehand), because the Python policy is, that the main thread can only exit if all daemon processes have finished. Currently, we can only terminate clients by issueing a kill command externally.
+
+Tested the exit behaviour with a client that does not seed or download anything. Here, we have no downloads iniated and the implementation should exit immediately, which works perfectly. If the client is seeding some torrents, then the protocol is, that STRG+C should terminate the client. This initiates the shutdown process, which also works fine.
+
+SOLUTION:
+
+ClientUptimeHandler (which only affects leechers) was the problem. This class implements callbacks and gets called by the session thread. It initiates the shutdown of the session, and then calls the callback function of the main thread which is supposed to shutdown the program. The main thread blocks until all daemon threads including the session thread have finished. Since the shutdown of the session (again, called from within the session thread) does just the same, both wait for the other thread to terminate. This introduces a deadlock situation and the client is not able to terminate itself. The solution is to move the shutdown code out of ClientUptimeHandler and into Client, which runs on the main thread. This solves the problem.
+
+	=> RESOLVED
+	
+2. Connections between two clients could not be established (exceptions), if PEX was disabled (we needed this in the old Tribler version, otherwise connection attempts on localhost were not successful). Fix: Simply do not disable PEX.
+
+	=> RESOLVED
+
+3. Some informations that we are aggregating from DownloadStatus objects were removed from the Tribler API. This includes the methods DownloadStatus.get_videoinfo() and DownloadStatus.get_peerid(). While this could be re-implemented quite easily by ourselves, the question arises, whether this information is actually needed by the monitoring component. get_videoinfo() is used to get the "valid_range" information and the "live" flag. peer_id corresponds to the unique ID of a client per download.
+
+Quick fix: Removed those attributes from the monitoring reports.
+
+	=> YET UNSOLVED, ASK SERGIOS
+
+4. We get the following error message upon connection establishment: "Connection instance has on attribute 'closed_swarm_protocol'. The connection seems to be established anyways (downloads progress till they reach 100%), so it seems that we can ignore it for now. However, there might be a correlation with issue #6.
+
+	=> RESOLVED (?)
+
+5. The default value of DownloadState.get_vod_stats() was altered. This information is built in DownloaderFeedback. The default value here is a dictionary with nonsense key-value-pairs: { 'harry' : 1 }. This breaks the implementation of our reporting facility. Quick fix: Altered the default value to a dictionary which adheres to the common structure of video statistics dictionaries. However, this should not be a problem with video files and the fact that this bug was caused while sharing a wmv file might be an indication that there is another problem elsewhere in the code.
+
+	=> RESOLVED (?)
+
+6. There seems to be a problem with the PiecePicker implementation when downloading video files.
+
+     [exec] Traceback (most recent call last):
+     [exec]   File "/home/mgu/development/workspaces/python/smoothit-migration-branch/peer/BaseLib/Core/BitTornado/RawServer.py", line 169, in listen_forever
+     [exec]     func()
+     [exec]   File "/home/mgu/development/workspaces/python/smoothit-migration-branch/peer/BaseLib/Core/BitTornado/BT1/Downloader.py", line 688, in dlr_periodic_check
+     [exec]     d._request_more()
+     [exec]   File "/home/mgu/development/workspaces/python/smoothit-migration-branch/peer/BaseLib/Core/BitTornado/BT1/Downloader.py", line 427, in _request_more
+     [exec]     slowpieces = slowpieces, connection = self.connection)
+     [exec]   File "/home/mgu/development/workspaces/python/smoothit-migration-branch/peer/BaseLib/Core/Video/PiecePickerStreaming.py", line 278, in next
+     [exec]     p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con, slowpieces=slowpieces, willrequest=willrequest,connection=connection)
+     [exec]   File "/home/mgu/development/workspaces/python/smoothit-migration-branch/peer/BaseLib/Core/BitTornado/BT1/PiecePicker.py", line 411, in next
+     [exec]     piece = self._next(haves, wantfunc, complete_first, helper_con, willrequest = willrequest, connection = connection)
+     [exec]   File "/home/mgu/development/workspaces/python/smoothit-migration-branch/peer/BaseLib/Core/Video/PiecePickerStreaming.py", line 324, in _next
+     [exec]     p = self.next_new(haves, wantfunc, complete_first, helper_con,willrequest=willrequest,connection=connection)
+     [exec]   File "/home/mgu/development/workspaces/python/smoothit-migration-branch/peer/BaseLib/Core/Video/PiecePickerStreaming.py", line 562, in next_new
+     [exec]     t = vs.normalize( first + self.transporter.max_prebuf_packets )
+     [exec] AttributeError: 'NoneType' object has no attribute 'max_prebuf_packets'
+
+=> I was not able to reproduce this error.

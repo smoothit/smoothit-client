@@ -1,0 +1,100 @@
+Buildfile: build.xml
+
+init:
+     [echo] *************************************************************
+     [echo] ***  Automated script for building SmoothIT SIS project   ***
+     [echo] *************************************************************
+     [echo] os.name:           Linux
+     [echo] ant.file:          /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/build.xml
+     [echo] ant.project.name:  SmoothIT P2P Client
+     [echo] ant.version:       Apache Ant version 1.7.0 compiled on August 29 2007
+     [echo] ant.java.version:  1.6
+     [echo] java.home:         /usr/lib/jvm/java-6-sun-1.6.0.14/jre
+     [echo] java.vendor:       Sun Microsystems Inc.
+     [echo] base.dir:          .
+     [echo] dist.dir:          ./dist
+     [echo] temp.dir:          ./temp
+     [echo] test.dir:          ./test
+     [echo] default.torrent:   ./torrents/startrek.torrent
+
+clean:
+     [echo] Cleaning directories...
+
+run-tests:
+     [echo] Run unit tests for the client. Most of them require a running SIS at ...
+     [exec] testCaching (TestCachingSisRequests.TestRequestCaching) ... ok
+     [exec] testReporting (TestMonitorReports.TestMonitorReports) ... ok
+     [exec] testFillUp (TestNeighborSelection.TestNeighborSelection) ... ok
+     [exec] testMechanismCreation (TestNeighborSelection.TestNeighborSelection) ... ok
+     [exec] testNone (TestNeighborSelection.TestNeighborSelection) ... ok
+     [exec] testOddEvenLocaly (TestNeighborSelection.TestNeighborSelection) ... ok
+     [exec] testOddEvenWithSimpleSISRanking (TestNeighborSelection.TestNeighborSelection) ... ok
+     [exec] testSimpleRanking (TestOddEvenRanking.TestOddEvenRanking) ... ok
+     [exec] testSameHost (TestSameHostRanking.TestSameHostRanking) ... ok
+     [exec] testSimpleRanking (TestSISRanking.TestSISRanking) ... ok
+     [exec] testAdd (TestSisServer.TestSIS) ... ok
+     [exec] testSimple (TestSisServer.TestSIS) ... ok
+     [exec] 
+     [exec] ----------------------------------------------------------------------
+     [exec] Ran 12 tests in 0.304s
+     [exec] 
+     [exec] OK
+
+swarm-test:
+     [echo] Test dir is /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/simple
+    [mkdir] Created dir: /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/simple
+     [echo] Start seed
+    [mkdir] Created dir: /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/simple/seed
+     [copy] Copying 2 files to /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/simple/seed
+     [echo] Start leecher
+    [mkdir] Created dir: /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/simple/leecher
+     [copy] Copying 1 file to /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/simple/leecher
+     [exec] Timeout: killed the sub-process
+     [echo] Finished leecher (became a seed?)
+     [exec] Timeout: killed the sub-process
+     [echo] Finished seed
+     [exec] Timeout: killed the sub-process
+     [echo] Leecher successfully downloaded the file: /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/simple/leecher/file.wmv
+
+testbed-tests:
+     [exec] testConfWithNonExistingFile (test_testbedconfchecker.TestbedConfigCheckerTest) ... ok
+     [exec] testConfWithUnusedFiles (test_testbedconfchecker.TestbedConfigCheckerTest) ... ok
+     [exec] testCorrectConfigurationWillNotFail (test_testbedconfchecker.TestbedConfigCheckerTest) ... ok
+     [exec] testAssertionErrorsOnInvalidArguments (test_testbedtracker.TestbedTrackerTest) ... ok
+     [exec] testCreateTestbedTracker (test_testbedtracker.TestbedTrackerTest) ... ok
+     [exec] testCreateTestbedTrackerDefault (test_testbedtracker.TestbedTrackerTest) ... ok
+     [exec] testCreateTestbedTrackerWithCorrectURL (test_testbedtracker.TestbedTrackerTest) ... ok
+     [exec] testCreateTestbedTrackerWithIncorrectURL (test_testbedtracker.TestbedTrackerTest) ... ok
+     [exec] testCorrectPropagation (test_testbedconf.TestbedConfigTest) ... ok
+     [exec] testNoConditionObjectPassed (test_testbedconf.TestbedConfigTest) ... ok
+     [exec] testSimpleConfigWithTwoClients (test_testbedconf.TestbedConfigTest) ... ok
+     [exec] testAssertionErrorsOnInvalidArguments (test_testbedclientconf.TestbedClientConfTest) ... ok
+     [exec] testCreateTestbedClientConf (test_testbedclientconf.TestbedClientConfTest) ... ok
+     [exec] testCreateTestbedClientConfDefault (test_testbedclientconf.TestbedClientConfTest) ... ok
+     [exec] test_changed_condition (test_analyzer.TestAnalyzer) ... ok
+     [exec] test_reached_status_before (test_analyzer.TestAnalyzer) ... ok
+     [exec] test_reached_status_before_no_status (test_analyzer.TestAnalyzer) ... ok
+     [exec] test_reached_status_before_too_late (test_analyzer.TestAnalyzer) ... ok
+     [exec] test_simple_with_two_clients (test_analyzer.TestAnalyzer) ... ok
+     [exec] testQuoteList (test_serialize.SerializationTest) ... ok
+     [exec] testSerializeNestedDicts (test_serialize.SerializationTest) ... ok
+     [exec] testSerializeNestedLists (test_serialize.SerializationTest) ... ok
+     [exec] testSerializeSimpleDict (test_serialize.SerializationTest) ... ok
+     [exec] 
+     [exec] ----------------------------------------------------------------------
+     [exec] Ran 23 tests in 10.004s
+     [exec] 
+     [exec] OK
+
+run-player-test:
+    [mkdir] Created dir: /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/player
+     [exec] Timeout: killed the sub-process
+     [exec] Result: 143
+     [echo] Logfile was written to: ./test/player/output.log
+     [echo] Leecher successfully downloaded the file: /home/pussep/work1/SmoothIT-SW/SmoothIT-Devel/peer/test/simple/leecher/file.wmv
+
+all-tests:
+     [echo] Run all available tests for the client
+
+BUILD SUCCESSFUL
+Total time: 1 minute 30 seconds

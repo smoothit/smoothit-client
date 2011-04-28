@@ -1,0 +1,36 @@
+Merged revisions 587-592,602 via svnmerge from 
+https://dev.kom.e-technik.tu-darmstadt.de/svn/smoothit-integration/branches/tribler-migration
+
+........
+  r587 | mgu | 2010-03-24 13:22:45 +0100 (Mi, 24 Mär 2010) | 1 line
+  
+  deletion of the baselib directory (core code of tribler 4.2)
+........
+  r588 | mgu | 2010-03-24 13:25:03 +0100 (Mi, 24 Mär 2010) | 1 line
+  
+  added the new baselib folder of the new nextshare client. baselib already contains all changes that were introduced by us for the old tribler version.
+........
+  r589 | mgu | 2010-03-24 15:45:34 +0100 (Mi, 24 Mär 2010) | 3 lines
+  
+  This commit addresses the following migration problem: Clients do not seem to shutdown properly.
+  
+  ClientUptimeHandler (which only affects leechers) was the problem. This class implements callbacks and gets called by the session thread. It initiates the shutdown of the session, and then calls the callback function of the main thread which is supposed to shutdown the program. The main thread blocks until all daemon threads including the session thread have finished. Since the shutdown of the session (again, called from within the session thread) does just the same, both wait for the other thread to terminate. This introduces a deadlock situation and the client is not able to terminate itself. The solution is to move the shutdown code out of ClientUptimeHandler and into Client, which runs on the main thread. This solves the problem.
+........
+  r590 | mgu | 2010-03-24 16:09:35 +0100 (Mi, 24 Mär 2010) | 3 lines
+  
+  Migration problem: The default value of DownloadState.get_vod_stats() was altered.
+  
+  The return value is built in DownloaderFeedback. The default value here is a dictionary with nonsense key-value-pairs: { 'harry' : 1 }. This breaks the implementation of our reporting facility. Quick fix: Altered the default value to a dictionary which adheres to the common structure of video statistics dictionaries. However, this should not be a problem with video files and the fact that this bug was caused while sharing a wmv file might be an indication that there is another problem elsewhere in the code.
+........
+  r591 | mgu | 2010-03-24 16:11:17 +0100 (Mi, 24 Mär 2010) | 1 line
+  
+  removed obsolete debug output
+........
+  r592 | mgu | 2010-03-24 23:16:39 +0100 (Mi, 24 Mär 2010) | 1 line
+  
+  documentation of migration problems
+........
+  r602 | mgu | 2010-04-19 00:47:56 +0200 (Mo, 19 Apr 2010) | 1 line
+  
+  last changes to this branch (just on the migration doc)
+........
